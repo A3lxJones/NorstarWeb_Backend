@@ -144,6 +144,39 @@ export interface CreateReportDTO {
     related_game_id?: string;
 }
 
+// ─── Drills (coaching resources) ────────────────────────────
+export type DrillCategory = "skating" | "stick_control" | "shooting" | "passing" | "conditioning" | "teamwork";
+export type DrillSkillLevel = "beginner" | "intermediate" | "advanced";
+
+export interface Drill {
+    id: string;
+    name: string;
+    description: string;
+    instructions: string;
+    category: DrillCategory;
+    skill_level: DrillSkillLevel;
+    difficulty: number; // 1-5
+    duration_minutes: number | null;
+    equipment: string | null;
+    max_players: number | null;
+    notes: string | null;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface CreateDrillDTO {
+    name: string;
+    description: string;
+    instructions: string;
+    category: DrillCategory;
+    skill_level: DrillSkillLevel;
+    difficulty: number;
+    duration_minutes?: number;
+    equipment?: string;
+    max_players?: number;
+    notes?: string;
+}
+
 // ─── API response helpers ───────────────────────────────────
 export interface ApiResponse<T = unknown> {
     success: boolean;

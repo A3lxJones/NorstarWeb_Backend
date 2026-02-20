@@ -16,15 +16,20 @@ router.use(authorize("admin"));
 // ─── List all users ────────────────────────────────────────
 /**
  * GET /api/admin/users
- * List all user profiles. Optional query: ?role=parent|coach|admin
+ * List all user profiles with their children (if parents).
+ * Optional query: ?role=parent|coach|admin&search=<name or email>
  */
 router.get("/users", async (req: Request, res: Response): Promise<void> => {
+    const { role, search } = req.query;
+
+    // Fetch all profiles with nested children
     let query = supabaseAdmin
         .from("profiles")
-        .select("*");
+        .select("*, children!children_parent_id_fkey(id, first_name, last_name, date_of_birth, skill_level, position)");
 
-    if (req.query.role && typeof req.query.role === "string") {
-        query = query.eq("role", req.query.role);
+    // Filter by role if provided
+    if (role && typeof role === "string") {
+        query = query.eq("role", role);
     }
 
     const { data, error } = await query.order("created_at", { ascending: false });
@@ -34,12 +39,24 @@ router.get("/users", async (req: Request, res: Response): Promise<void> => {
         return;
     }
 
-    res.json({ success: true, data } as ApiResponse);
+    // Filter by search (name or email) in JS for flexibility
+    let filtered = data || [];
+    if (search && typeof search === "string") {
+        const searchLower = search.toLowerCase();
+        filtered = filtered.filter(
+            (user: any) =>
+                user.full_name.toLowerCase().includes(searchLower) ||
+                user.email.toLowerCase().includes(searchLower)
+        );
+    }
+
+    res.json({ success: true, data: filtered } as ApiResponse);
 });
 
 // ─── Get a single user ─────────────────────────────────────
 /**
  * GET /api/admin/users/:id
+ * Get a user's full profile including all their children with medical/emergency details.
  */
 router.get("/users/:id", async (req: Request, res: Response): Promise<void> => {
     if (!isValidUUID(req.params.id)) {
@@ -47,9 +64,17 @@ router.get("/users/:id", async (req: Request, res: Response): Promise<void> => {
         return;
     }
 
+    // Include full children details for parents
     const { data, error } = await supabaseAdmin
         .from("profiles")
-        .select("*")
+        .select(
+            `*,
+             children!children_parent_id_fkey(
+               id, first_name, last_name, date_of_birth, gender, skill_level, position,
+               medical_conditions, allergies, emergency_contact_name, emergency_contact_phone,
+               emergency_contact_relationship, photo_consent, created_at, updated_at
+             )`
+        )
         .eq("id", req.params.id)
         .single();
 
