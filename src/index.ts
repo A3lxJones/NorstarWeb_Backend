@@ -13,6 +13,7 @@ import availabilityRoutes from "./routes/availability";
 import reportsRoutes from "./routes/reports";
 import adminRoutes from "./routes/admin";
 import dashboardRoutes from "./routes/dashboard";
+import drillsRoutes from "./routes/drills";
 
 dotenv.config();
 
@@ -63,6 +64,7 @@ app.use("/api/availability", availabilityRoutes);
 app.use("/api/reports", reportsRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/dashboard", dashboardRoutes);
+app.use("/api/drills", drillsRoutes);
 
 // ─── 404 handler ────────────────────────────────────────────
 app.use((_req, res) => {
