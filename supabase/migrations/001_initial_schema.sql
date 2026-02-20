@@ -65,7 +65,7 @@ CREATE INDEX idx_children_parent ON children(parent_id);
 CREATE TABLE teams (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   name TEXT NOT NULL,
-  age_group TEXT NOT NULL,
+  age_group TEXT NOT NULL CHECK (age_group IN ('learn_to_play', 'u13', 'u15')),
   coach_id UUID REFERENCES profiles(id) ON DELETE SET NULL,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()

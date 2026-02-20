@@ -1,0 +1,2 @@
+UPDATE teams SET age_group = 'learn_to_play' WHERE age_group NOT IN ('learn_to_play', 'u13', 'u15');
+ALTER TABLE teams ADD CONSTRAINT teams_age_group_check CHECK (age_group IN ('learn_to_play', 'u13', 'u15'));

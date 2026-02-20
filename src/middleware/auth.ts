@@ -7,7 +7,8 @@ declare global {
     namespace Express {
         interface Request {
             userId?: string;
-            userRole?: UserRole;
+            userRole?: UserRole;        // effective role (may be overridden by impersonation)
+            userRealRole?: UserRole;     // actual role from the database (never changes)
             userEmail?: string;
         }
     }
@@ -56,6 +57,21 @@ export async function authenticate(
     req.userId = user.id;
     req.userEmail = user.email;
     req.userRole = profile.role as UserRole;
+    req.userRealRole = profile.role as UserRole;
+
+    // ── Admin impersonation ─────────────────────────────────
+    // If the user is an admin and sends X-View-As-Role header,
+    // temporarily override the effective role so they can test
+    // the parent or coach experience. The real role is still "admin"
+    // and is preserved in req.userRealRole for admin-only checks.
+    const viewAsRole = req.headers["x-view-as-role"] as string | undefined;
+    if (
+        req.userRealRole === "admin" &&
+        viewAsRole &&
+        ["parent", "coach"].includes(viewAsRole)
+    ) {
+        req.userRole = viewAsRole as UserRole;
+    }
 
     next();
 }
@@ -63,10 +79,22 @@ export async function authenticate(
 /**
  * Middleware factory: Restrict route to specific roles.
  * Usage: authorize("admin", "coach")
+ *
+ * An admin is ALWAYS allowed through, even when impersonating
+ * another role — so they're never locked out of admin routes.
  */
 export function authorize(...allowedRoles: UserRole[]) {
     return (req: Request, res: Response, next: NextFunction): void => {
-        if (!req.userRole || !allowedRoles.includes(req.userRole)) {
+        const effectiveRole = req.userRole;
+        const realRole = req.userRealRole;
+
+        // Admin always passes authorization
+        if (realRole === "admin") {
+            next();
+            return;
+        }
+
+        if (!effectiveRole || !allowedRoles.includes(effectiveRole)) {
             res.status(403).json({
                 success: false,
                 error: "You do not have permission to access this resource",
