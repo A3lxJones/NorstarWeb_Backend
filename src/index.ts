@@ -20,27 +20,27 @@ const PORT = process.env.PORT || 3000;
 // ─── Security middleware ────────────────────────────────────
 app.use(helmet()); // Sets secure HTTP headers
 app.use(
-  cors({
-    origin: process.env.CORS_ORIGIN || "http://localhost:5173",
-    credentials: true,
-  })
+    cors({
+        origin: process.env.CORS_ORIGIN || "http://localhost:5173",
+        credentials: true,
+    })
 );
 
 // Rate limiting — protect against brute force
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per window
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { success: false, error: "Too many requests, please try again later" },
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100, // limit each IP to 100 requests per window
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { success: false, error: "Too many requests, please try again later" },
 });
 app.use(limiter);
 
 // Stricter rate limit for auth endpoints
 const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 20, // only 20 login/signup attempts per 15 min
-  message: { success: false, error: "Too many auth attempts, please try again later" },
+    windowMs: 15 * 60 * 1000,
+    max: 20, // only 20 login/signup attempts per 15 min
+    message: { success: false, error: "Too many auth attempts, please try again later" },
 });
 
 // ─── Body parsing ───────────────────────────────────────────
@@ -49,7 +49,7 @@ app.use(express.urlencoded({ extended: true, limit: "10kb" }));
 
 // ─── Health check ───────────────────────────────────────────
 app.get("/api/health", (_req, res) => {
-  res.json({ success: true, message: "Norstar API is running", timestamp: new Date().toISOString() });
+    res.json({ success: true, message: "Norstar API is running", timestamp: new Date().toISOString() });
 });
 
 // ─── Routes ─────────────────────────────────────────────────
@@ -62,7 +62,7 @@ app.use("/api/reports", reportsRoutes);
 
 // ─── 404 handler ────────────────────────────────────────────
 app.use((_req, res) => {
-  res.status(404).json({ success: false, error: "Route not found" });
+    res.status(404).json({ success: false, error: "Route not found" });
 });
 
 // ─── Global error handler ───────────────────────────────────
@@ -70,8 +70,8 @@ app.use(errorHandler);
 
 // ─── Start server ───────────────────────────────────────────
 app.listen(PORT, () => {
-  console.log(`Norstar API running on port ${PORT}`);
-  console.log(`Environment: ${process.env.NODE_ENV || "development"}`);
+    console.log(`Norstar API running on port ${PORT}`);
+    console.log(`Environment: ${process.env.NODE_ENV || "development"}`);
 });
 
 export default app;

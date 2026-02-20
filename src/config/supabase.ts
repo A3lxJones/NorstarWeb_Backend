@@ -8,9 +8,9 @@ const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 if (!supabaseUrl || !supabaseAnonKey || !supabaseServiceKey) {
-  throw new Error(
-    "Missing Supabase environment variables. Check your .env file."
-  );
+    throw new Error(
+        "Missing Supabase environment variables. Check your .env file."
+    );
 }
 
 // Public client — respects Row Level Security (RLS)

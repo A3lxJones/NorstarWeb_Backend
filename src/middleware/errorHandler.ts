@@ -6,24 +6,24 @@ import { ApiResponse } from "../types";
  * a consistent JSON response. Never leaks stack traces in production.
  */
 export function errorHandler(
-  err: Error,
-  _req: Request,
-  res: Response,
-  _next: NextFunction
+    err: Error,
+    _req: Request,
+    res: Response,
+    _next: NextFunction
 ): void {
-  console.error("Unhandled error:", err.message);
+    console.error("Unhandled error:", err.message);
 
-  if (process.env.NODE_ENV !== "production") {
-    console.error(err.stack);
-  }
+    if (process.env.NODE_ENV !== "production") {
+        console.error(err.stack);
+    }
 
-  const response: ApiResponse = {
-    success: false,
-    error:
-      process.env.NODE_ENV === "production"
-        ? "Internal server error"
-        : err.message,
-  };
+    const response: ApiResponse = {
+        success: false,
+        error:
+            process.env.NODE_ENV === "production"
+                ? "Internal server error"
+                : err.message,
+    };
 
-  res.status(500).json(response);
+    res.status(500).json(response);
 }

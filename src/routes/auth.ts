@@ -12,65 +12,65 @@ const router = Router();
  * Body: { email, password, full_name, phone?, role? }
  */
 router.post("/signup", async (req: Request, res: Response): Promise<void> => {
-  const { email, password, full_name, phone, role } = req.body;
+    const { email, password, full_name, phone, role } = req.body;
 
-  if (!isValidEmail(email) || !isNonEmptyString(password) || !isNonEmptyString(full_name)) {
-    res.status(400).json({
-      success: false,
-      error: "email, password, and full_name are required",
-    } as ApiResponse);
-    return;
-  }
+    if (!isValidEmail(email) || !isNonEmptyString(password) || !isNonEmptyString(full_name)) {
+        res.status(400).json({
+            success: false,
+            error: "email, password, and full_name are required",
+        } as ApiResponse);
+        return;
+    }
 
-  if (password.length < 8) {
-    res.status(400).json({
-      success: false,
-      error: "Password must be at least 8 characters",
-    } as ApiResponse);
-    return;
-  }
+    if (password.length < 8) {
+        res.status(400).json({
+            success: false,
+            error: "Password must be at least 8 characters",
+        } as ApiResponse);
+        return;
+    }
 
-  const userRole: UserRole = role === "coach" || role === "admin" ? role : "parent";
+    const userRole: UserRole = role === "coach" || role === "admin" ? role : "parent";
 
-  // Only admins can create other admin accounts
-  // For initial setup, the first admin must be set directly in Supabase dashboard
-  if (userRole === "admin") {
-    res.status(403).json({
-      success: false,
-      error: "Admin accounts can only be created by existing admins",
-    } as ApiResponse);
-    return;
-  }
+    // Only admins can create other admin accounts
+    // For initial setup, the first admin must be set directly in Supabase dashboard
+    if (userRole === "admin") {
+        res.status(403).json({
+            success: false,
+            error: "Admin accounts can only be created by existing admins",
+        } as ApiResponse);
+        return;
+    }
 
-  const { data, error } = await supabase.auth.signUp({
-    email,
-    password,
-    options: {
-      data: { full_name, phone: phone || null, role: userRole },
-    },
-  });
-
-  if (error) {
-    res.status(400).json({ success: false, error: error.message } as ApiResponse);
-    return;
-  }
-
-  // Create profile row (the DB trigger also does this, but belt-and-braces)
-  if (data.user) {
-    await supabaseAdmin.from("profiles").upsert({
-      id: data.user.id,
-      email,
-      full_name,
-      phone: phone || null,
-      role: userRole,
+    const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+            data: { full_name, phone: phone || null, role: userRole },
+        },
     });
-  }
 
-  res.status(201).json({
-    success: true,
-    message: "Account created. Please check your email to confirm.",
-    data: { userId: data.user?.id },
-  } as ApiResponse);
+    if (error) {
+        res.status(400).json({ success: false, error: error.message } as ApiResponse);
+        return;
+    }
+
+    // Create profile row (the DB trigger also does this, but belt-and-braces)
+    if (data.user) {
+        await supabaseAdmin.from("profiles").upsert({
+            id: data.user.id,
+            email,
+            full_name,
+            phone: phone || null,
+            role: userRole,
+        });
+    }
+
+    res.status(201).json({
+        success: true,
+        message: "Account created. Please check your email to confirm.",
+        data: { userId: data.user?.id },
+    } as ApiResponse);
 });
 
 /**
@@ -79,38 +79,38 @@ router.post("/signup", async (req: Request, res: Response): Promise<void> => {
  * Body: { email, password }
  */
 router.post("/login", async (req: Request, res: Response): Promise<void> => {
-  const { email, password } = req.body;
+    const { email, password } = req.body;
 
-  if (!isValidEmail(email) || !isNonEmptyString(password)) {
-    res.status(400).json({
-      success: false,
-      error: "email and password are required",
+    if (!isValidEmail(email) || !isNonEmptyString(password)) {
+        res.status(400).json({
+            success: false,
+            error: "email and password are required",
+        } as ApiResponse);
+        return;
+    }
+
+    const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+    });
+
+    if (error) {
+        res.status(401).json({ success: false, error: "Invalid email or password" } as ApiResponse);
+        return;
+    }
+
+    res.json({
+        success: true,
+        data: {
+            accessToken: data.session?.access_token,
+            refreshToken: data.session?.refresh_token,
+            user: {
+                id: data.user?.id,
+                email: data.user?.email,
+                role: data.user?.user_metadata?.role,
+            },
+        },
     } as ApiResponse);
-    return;
-  }
-
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email,
-    password,
-  });
-
-  if (error) {
-    res.status(401).json({ success: false, error: "Invalid email or password" } as ApiResponse);
-    return;
-  }
-
-  res.json({
-    success: true,
-    data: {
-      accessToken: data.session?.access_token,
-      refreshToken: data.session?.refresh_token,
-      user: {
-        id: data.user?.id,
-        email: data.user?.email,
-        role: data.user?.user_metadata?.role,
-      },
-    },
-  } as ApiResponse);
 });
 
 /**
@@ -118,14 +118,14 @@ router.post("/login", async (req: Request, res: Response): Promise<void> => {
  * Sign out the current session.
  */
 router.post("/logout", async (_req: Request, res: Response): Promise<void> => {
-  const { error } = await supabase.auth.signOut();
+    const { error } = await supabase.auth.signOut();
 
-  if (error) {
-    res.status(500).json({ success: false, error: error.message } as ApiResponse);
-    return;
-  }
+    if (error) {
+        res.status(500).json({ success: false, error: error.message } as ApiResponse);
+        return;
+    }
 
-  res.json({ success: true, message: "Logged out successfully" } as ApiResponse);
+    res.json({ success: true, message: "Logged out successfully" } as ApiResponse);
 });
 
 /**
@@ -134,32 +134,32 @@ router.post("/logout", async (_req: Request, res: Response): Promise<void> => {
  * Body: { refresh_token }
  */
 router.post("/refresh", async (req: Request, res: Response): Promise<void> => {
-  const { refresh_token } = req.body;
+    const { refresh_token } = req.body;
 
-  if (!isNonEmptyString(refresh_token)) {
-    res.status(400).json({
-      success: false,
-      error: "refresh_token is required",
+    if (!isNonEmptyString(refresh_token)) {
+        res.status(400).json({
+            success: false,
+            error: "refresh_token is required",
+        } as ApiResponse);
+        return;
+    }
+
+    const { data, error } = await supabase.auth.refreshSession({
+        refresh_token,
+    });
+
+    if (error) {
+        res.status(401).json({ success: false, error: "Invalid refresh token" } as ApiResponse);
+        return;
+    }
+
+    res.json({
+        success: true,
+        data: {
+            accessToken: data.session?.access_token,
+            refreshToken: data.session?.refresh_token,
+        },
     } as ApiResponse);
-    return;
-  }
-
-  const { data, error } = await supabase.auth.refreshSession({
-    refresh_token,
-  });
-
-  if (error) {
-    res.status(401).json({ success: false, error: "Invalid refresh token" } as ApiResponse);
-    return;
-  }
-
-  res.json({
-    success: true,
-    data: {
-      accessToken: data.session?.access_token,
-      refreshToken: data.session?.refresh_token,
-    },
-  } as ApiResponse);
 });
 
 export default router;
