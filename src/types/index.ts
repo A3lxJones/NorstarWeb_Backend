@@ -47,10 +47,13 @@ export interface CreateChildDTO {
 }
 
 // ─── Teams ──────────────────────────────────────────────────
+export type AgeGroup = "learn_to_play" | "u13" | "u15";
+export const VALID_AGE_GROUPS: AgeGroup[] = ["learn_to_play", "u13", "u15"];
+
 export interface Team {
     id: string;
     name: string;
-    age_group: string;
+    age_group: AgeGroup;
     coach_id: string | null;
     created_at: string;
     updated_at: string;

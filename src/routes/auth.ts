@@ -1,6 +1,7 @@
 import { Router, Request, Response } from "express";
 import { supabase } from "../config/supabase";
 import { supabaseAdmin } from "../config/supabase";
+import { authenticate } from "../middleware/auth";
 import { isValidEmail, isNonEmptyString } from "../utils/validation";
 import { ApiResponse, UserRole } from "../types";
 
@@ -158,6 +159,34 @@ router.post("/refresh", async (req: Request, res: Response): Promise<void> => {
         data: {
             accessToken: data.session?.access_token,
             refreshToken: data.session?.refresh_token,
+        },
+    } as ApiResponse);
+});
+
+/**
+ * GET /api/auth/me
+ * Return the authenticated user's profile.
+ * The frontend uses this to decide which view to render (parent vs coach vs admin).
+ */
+router.get("/me", authenticate, async (req: Request, res: Response): Promise<void> => {
+    const { data: profile, error } = await supabaseAdmin
+        .from("profiles")
+        .select("*")
+        .eq("id", req.userId!)
+        .single();
+
+    if (error || !profile) {
+        res.status(404).json({ success: false, error: "Profile not found" } as ApiResponse);
+        return;
+    }
+
+    res.json({
+        success: true,
+        data: {
+            ...profile,
+            // If an admin is impersonating, tell the frontend both the real and effective role
+            effectiveRole: req.userRole,
+            isImpersonating: profile.role !== req.userRole,
         },
     } as ApiResponse);
 });

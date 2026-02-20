@@ -2,7 +2,7 @@ import { Router, Request, Response } from "express";
 import { supabaseAdmin } from "../config/supabase";
 import { authenticate, authorize } from "../middleware/auth";
 import { getMissingFields, isValidUUID } from "../utils/validation";
-import { ApiResponse } from "../types";
+import { ApiResponse, VALID_AGE_GROUPS } from "../types";
 
 const router = Router();
 
@@ -70,6 +70,14 @@ router.post(
             res.status(400).json({
                 success: false,
                 error: `Missing required fields: ${missing.join(", ")}`,
+            } as ApiResponse);
+            return;
+        }
+
+        if (!VALID_AGE_GROUPS.includes(req.body.age_group)) {
+            res.status(400).json({
+                success: false,
+                error: `age_group must be one of: ${VALID_AGE_GROUPS.join(", ")}`,
             } as ApiResponse);
             return;
         }
@@ -197,6 +205,15 @@ router.put(
         }
 
         const { id: _id, created_at: _ca, ...updateData } = req.body;
+
+        // Validate age_group if it's being updated
+        if (updateData.age_group && !VALID_AGE_GROUPS.includes(updateData.age_group)) {
+            res.status(400).json({
+                success: false,
+                error: `age_group must be one of: ${VALID_AGE_GROUPS.join(", ")}`,
+            } as ApiResponse);
+            return;
+        }
 
         const { data, error } = await supabaseAdmin
             .from("teams")
