@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from "express";
-import { supabase } from "../config/supabase";
+import { supabase, supabaseAdmin } from "../config/supabase";
 import { UserRole } from "../types";
 
 // Extend Express Request to include user info
@@ -42,7 +42,7 @@ export async function authenticate(
     }
 
     // Fetch the user's role from the profiles table
-    const { data: profile, error: profileError } = await supabase
+    const { data: profile, error: profileError } = await supabaseAdmin
         .from("profiles")
         .select("role")
         .eq("id", user.id)

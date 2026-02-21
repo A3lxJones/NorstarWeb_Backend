@@ -6,10 +6,12 @@ import dotenv from "dotenv";
 
 import { errorHandler } from "./middleware/errorHandler";
 import authRoutes from "./routes/auth";
+import dashboardRoutes from "./routes/dashboard";
 import childrenRoutes from "./routes/children";
 import teamsRoutes from "./routes/teams";
 import gamesRoutes from "./routes/games";
 import availabilityRoutes from "./routes/availability";
+import availabilityRequestRoutes from "./routes/availability-requests";
 import reportsRoutes from "./routes/reports";
 
 dotenv.config();
@@ -54,10 +56,12 @@ app.get("/api/health", (_req, res) => {
 
 // ─── Routes ─────────────────────────────────────────────────
 app.use("/api/auth", authLimiter, authRoutes);
+app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/children", childrenRoutes);
 app.use("/api/teams", teamsRoutes);
 app.use("/api/games", gamesRoutes);
 app.use("/api/availability", availabilityRoutes);
+app.use("/api/availability-requests", availabilityRequestRoutes);
 app.use("/api/reports", reportsRoutes);
 
 // ─── 404 handler ────────────────────────────────────────────

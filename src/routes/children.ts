@@ -72,6 +72,45 @@ router.get("/:id", async (req: Request, res: Response): Promise<void> => {
 });
 
 /**
+ * GET /api/children/:id/registrations
+ * Get team registrations for a specific child.
+ * Parents can only see their own children's registrations.
+ */
+router.get("/:id/registrations", async (req: Request, res: Response): Promise<void> => {
+    if (!isValidUUID(req.params.id)) {
+        res.status(400).json({ success: false, error: "Invalid child ID" } as ApiResponse);
+        return;
+    }
+
+    // Verify parent owns the child (if parent)
+    if (req.userRole === "parent") {
+        const { data: child } = await supabaseAdmin
+            .from("children")
+            .select("parent_id")
+            .eq("id", req.params.id)
+            .single();
+
+        if (!child || child.parent_id !== req.userId) {
+            res.status(403).json({ success: false, error: "Access denied" } as ApiResponse);
+            return;
+        }
+    }
+
+    const { data, error } = await supabaseAdmin
+        .from("team_registrations")
+        .select("*, team:teams(id, name, age_group)")
+        .eq("child_id", req.params.id)
+        .order("created_at", { ascending: false });
+
+    if (error) {
+        res.status(500).json({ success: false, error: error.message } as ApiResponse);
+        return;
+    }
+
+    res.json({ success: true, data } as ApiResponse);
+});
+
+/**
  * POST /api/children
  * Register a new child (parents only — linked to their account).
  */

@@ -120,6 +120,55 @@ export interface SubmitAvailabilityDTO {
     reason?: string;
 }
 
+// ─── Availability Requests ──────────────────────────────────
+export type AvailabilityRequestStatus = "open" | "closed";
+
+export interface AvailabilityRequest {
+    id: string;
+    team_id: string;
+    game_id: string | null;
+    request_type: AvailabilityType;
+    title: string;
+    event_date: string;
+    event_time: string | null;
+    location: string | null;
+    message: string | null;
+    deadline: string | null;
+    status: AvailabilityRequestStatus;
+    created_by: string;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface CreateAvailabilityRequestDTO {
+    team_id: string;
+    game_id?: string;
+    request_type: AvailabilityType;
+    title: string;
+    event_date: string;
+    event_time?: string;
+    location?: string;
+    message?: string;
+    deadline?: string;
+}
+
+export interface AvailabilityResponse {
+    id: string;
+    request_id: string;
+    child_id: string;
+    status: AvailabilityStatus;
+    reason: string | null;
+    responded_by: string;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface SubmitAvailabilityResponseDTO {
+    child_id: string;
+    status: AvailabilityStatus;
+    reason?: string;
+}
+
 // ─── Reports (admin) ────────────────────────────────────────
 export interface Report {
     id: string;
