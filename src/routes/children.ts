@@ -13,10 +13,8 @@ const REQUIRED_CHILD_FIELDS = [
     "first_name",
     "last_name",
     "date_of_birth",
-    "gender",
     "emergency_contact_name",
     "emergency_contact_phone",
-    "emergency_contact_relationship",
 ];
 
 /**

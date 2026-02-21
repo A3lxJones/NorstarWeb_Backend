@@ -195,6 +195,70 @@ router.post(
     }
 );
 
+// ─── List all children (admin view) ────────────────────────
+/**
+ * GET /api/admin/children
+ * List all registered children with their parent info.
+ * Optional query: ?search=<name>&age_group=<group>
+ */
+router.get("/children", async (req: Request, res: Response): Promise<void> => {
+    const { search } = req.query;
+
+    const { data, error } = await supabaseAdmin
+        .from("children")
+        .select(
+            `*,
+             parent:profiles!children_parent_id_fkey(id, full_name, email, phone)`
+        )
+        .order("created_at", { ascending: false });
+
+    if (error) {
+        res.status(500).json({ success: false, error: error.message } as ApiResponse);
+        return;
+    }
+
+    let filtered = data || [];
+    if (search && typeof search === "string") {
+        const searchLower = search.toLowerCase();
+        filtered = filtered.filter(
+            (child: any) =>
+                child.first_name.toLowerCase().includes(searchLower) ||
+                child.last_name.toLowerCase().includes(searchLower) ||
+                child.parent?.full_name?.toLowerCase().includes(searchLower)
+        );
+    }
+
+    res.json({ success: true, data: filtered } as ApiResponse);
+});
+
+// ─── Get a single child (admin view) ───────────────────────
+/**
+ * GET /api/admin/children/:id
+ * Full child detail with parent info.
+ */
+router.get("/children/:id", async (req: Request, res: Response): Promise<void> => {
+    if (!isValidUUID(req.params.id)) {
+        res.status(400).json({ success: false, error: "Invalid child ID" } as ApiResponse);
+        return;
+    }
+
+    const { data, error } = await supabaseAdmin
+        .from("children")
+        .select(
+            `*,
+             parent:profiles!children_parent_id_fkey(id, full_name, email, phone)`
+        )
+        .eq("id", req.params.id)
+        .single();
+
+    if (error || !data) {
+        res.status(404).json({ success: false, error: "Child not found" } as ApiResponse);
+        return;
+    }
+
+    res.json({ success: true, data } as ApiResponse);
+});
+
 // ─── Delete a user ─────────────────────────────────────────
 /**
  * DELETE /api/admin/users/:id
