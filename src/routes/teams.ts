@@ -47,14 +47,77 @@ router.get("/:id", async (req: Request, res: Response): Promise<void> => {
         return;
     }
 
-    // Also fetch registered children
-    const { data: registrations } = await supabaseAdmin
+    // Fetch approved members
+    const { data: approved } = await supabaseAdmin
         .from("team_registrations")
-        .select("*, child:children(id, first_name, last_name, date_of_birth, skill_level, position)")
+        .select("*, child:children(id, first_name, last_name, date_of_birth, skill_level, position), registered_by_profile:profiles!team_registrations_registered_by_fkey(id, full_name, email)")
         .eq("team_id", req.params.id)
         .eq("status", "approved");
 
-    res.json({ success: true, data: { ...team, members: registrations || [] } } as ApiResponse);
+    // Fetch pending registrations (visible to coaches/admins, or to the parent who submitted)
+    let pending: typeof approved = [];
+    if (req.userRole === "coach" || req.userRole === "admin") {
+        const { data } = await supabaseAdmin
+            .from("team_registrations")
+            .select("*, child:children(id, first_name, last_name, date_of_birth, skill_level, position), registered_by_profile:profiles!team_registrations_registered_by_fkey(id, full_name, email)")
+            .eq("team_id", req.params.id)
+            .eq("status", "pending");
+        pending = data || [];
+    } else if (req.userRole === "parent") {
+        const { data } = await supabaseAdmin
+            .from("team_registrations")
+            .select("*, child:children(id, first_name, last_name, date_of_birth, skill_level, position), registered_by_profile:profiles!team_registrations_registered_by_fkey(id, full_name, email)")
+            .eq("team_id", req.params.id)
+            .eq("status", "pending")
+            .eq("registered_by", req.userId!);
+        pending = data || [];
+    }
+
+    res.json({
+        success: true,
+        data: {
+            ...team,
+            members: approved || [],
+            pendingRegistrations: pending || [],
+        },
+    } as ApiResponse);
+});
+
+/**
+ * GET /api/teams/:id/registrations
+ * Get all registrations for a team (coaches/admins see all, parents see their own).
+ * Supports ?status=pending|approved|rejected filter.
+ */
+router.get("/:id/registrations", async (req: Request, res: Response): Promise<void> => {
+    if (!isValidUUID(req.params.id)) {
+        res.status(400).json({ success: false, error: "Invalid team ID" } as ApiResponse);
+        return;
+    }
+
+    let query = supabaseAdmin
+        .from("team_registrations")
+        .select("*, child:children(id, first_name, last_name, date_of_birth, skill_level, position), registered_by_profile:profiles!team_registrations_registered_by_fkey(id, full_name, email)")
+        .eq("team_id", req.params.id);
+
+    // Filter by status if provided
+    const statusFilter = req.query.status as string | undefined;
+    if (statusFilter && ["pending", "approved", "rejected"].includes(statusFilter)) {
+        query = query.eq("status", statusFilter);
+    }
+
+    // Parents can only see their own children's registrations
+    if (req.userRole === "parent") {
+        query = query.eq("registered_by", req.userId!);
+    }
+
+    const { data, error } = await query.order("created_at", { ascending: false });
+
+    if (error) {
+        res.status(500).json({ success: false, error: error.message } as ApiResponse);
+        return;
+    }
+
+    res.json({ success: true, data } as ApiResponse);
 });
 
 /**
@@ -95,28 +158,32 @@ router.post(
 
 /**
  * POST /api/teams/:id/register
- * Register a child for a team (parent submits, coach/admin approves).
+ * Register a child for a team.
+ * - Parents: submit their own children (status = pending, needs coach/admin approval).
+ * - Coaches/Admins: can register any child (status = approved immediately).
  * Body: { child_id }
  */
 router.post(
     "/:id/register",
-    authorize("parent"),
+    authorize("parent", "coach", "admin"),
     async (req: Request, res: Response): Promise<void> => {
         if (!isValidUUID(req.params.id) || !isValidUUID(req.body.child_id)) {
             res.status(400).json({ success: false, error: "Invalid team or child ID" } as ApiResponse);
             return;
         }
 
-        // Verify parent owns the child
-        const { data: child } = await supabaseAdmin
-            .from("children")
-            .select("parent_id")
-            .eq("id", req.body.child_id)
-            .single();
+        // Verify parent owns the child (parents only)
+        if (req.userRole === "parent") {
+            const { data: child } = await supabaseAdmin
+                .from("children")
+                .select("parent_id")
+                .eq("id", req.body.child_id)
+                .single();
 
-        if (!child || child.parent_id !== req.userId) {
-            res.status(403).json({ success: false, error: "You can only register your own children" } as ApiResponse);
-            return;
+            if (!child || child.parent_id !== req.userId) {
+                res.status(403).json({ success: false, error: "You can only register your own children" } as ApiResponse);
+                return;
+            }
         }
 
         // Check for existing registration
@@ -132,13 +199,16 @@ router.post(
             return;
         }
 
+        // Coaches/admins auto-approve; parents go to pending
+        const initialStatus = req.userRole === "parent" ? "pending" : "approved";
+
         const { data, error } = await supabaseAdmin
             .from("team_registrations")
             .insert({
                 team_id: req.params.id,
                 child_id: req.body.child_id,
                 registered_by: req.userId,
-                status: "pending",
+                status: initialStatus,
             })
             .select()
             .single();
@@ -148,7 +218,11 @@ router.post(
             return;
         }
 
-        res.status(201).json({ success: true, data, message: "Registration submitted for approval" } as ApiResponse);
+        const message = initialStatus === "pending"
+            ? "Registration submitted for approval"
+            : "Child registered and approved";
+
+        res.status(201).json({ success: true, data, message } as ApiResponse);
     }
 );
 
