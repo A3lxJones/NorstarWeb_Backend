@@ -190,6 +190,55 @@ export interface CreateReportDTO {
     related_game_id?: string;
 }
 
+// ─── Drills ─────────────────────────────────────────────────
+export interface Drill {
+    id: string;
+    name: string;
+    category: string;
+    difficulty: string;
+    duration_minutes: number;
+    min_players: number;
+    max_players: number;
+    equipment: string[];
+    description: string | null;
+    objectives: string[];
+    setup: string | null;
+    instructions: string[];
+    coaching_points: string[];
+    variations: string[];
+    suitable_for: string[];
+    team_id: string | null;
+    created_by: string;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface CreateDrillDTO {
+    name: string;
+    category?: string;
+    difficulty?: string;
+    duration_minutes?: number;
+    min_players?: number;
+    max_players?: number;
+    equipment?: string[];
+    description?: string;
+    objectives?: string[];
+    setup?: string;
+    instructions?: string[];
+    coaching_points?: string[];
+    variations?: string[];
+    suitable_for?: string[];
+    team_id?: string;
+}
+
+export interface DrillsListResponse {
+    drills: Drill[];
+    total: number;
+    categories: string[];
+    difficulties: string[];
+    age_groups: string[];
+}
+
 // ─── API response helpers ───────────────────────────────────
 export interface ApiResponse<T = unknown> {
     success: boolean;

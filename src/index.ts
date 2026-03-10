@@ -13,6 +13,7 @@ import gamesRoutes from "./routes/games";
 import availabilityRoutes from "./routes/availability";
 import availabilityRequestRoutes from "./routes/availability-requests";
 import reportsRoutes from "./routes/reports";
+import drillsRoutes from "./routes/drills";
 
 dotenv.config();
 
@@ -63,6 +64,7 @@ app.use("/api/games", gamesRoutes);
 app.use("/api/availability", availabilityRoutes);
 app.use("/api/availability-requests", availabilityRequestRoutes);
 app.use("/api/reports", reportsRoutes);
+app.use("/api/drills", drillsRoutes);
 
 // ─── 404 handler ────────────────────────────────────────────
 app.use((_req, res) => {
