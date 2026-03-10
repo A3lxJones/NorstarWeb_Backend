@@ -64,6 +64,9 @@ export async function authenticate(
 /**
  * Middleware factory: Restrict route to specific roles.
  * Usage: authorize("admin", "coach")
+ *
+ * An admin is ALWAYS allowed through, even when impersonating
+ * another role — so they're never locked out of admin routes.
  */
 export function authorize(...allowedRoles: UserRole[]) {
 	return (req: Request, res: Response, next: NextFunction): void => {

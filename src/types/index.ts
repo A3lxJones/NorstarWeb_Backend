@@ -23,7 +23,7 @@ export interface Child {
     allergies: string | null;
     emergency_contact_name: string;
     emergency_contact_phone: string;
-    emergency_contact_relationship: string;
+    emergency_contact_relationship: string | null;
     photo_consent: boolean;
     skill_level: 'beginner' | 'intermediate' | 'advanced' | null;
     position: string | null;
@@ -40,17 +40,20 @@ export interface CreateChildDTO {
     allergies?: string;
     emergency_contact_name: string;
     emergency_contact_phone: string;
-    emergency_contact_relationship: string;
+    emergency_contact_relationship?: string;
     photo_consent: boolean;
     skill_level?: 'beginner' | 'intermediate' | 'advanced';
     position?: string;
 }
 
 // ─── Teams ──────────────────────────────────────────────────
+export type AgeGroup = "learn_to_play" | "u13" | "u15";
+export const VALID_AGE_GROUPS: AgeGroup[] = ["learn_to_play", "u13", "u15"];
+
 export interface Team {
     id: string;
     name: string;
-    age_group: string;
+    age_group: AgeGroup;
     coach_id: string | null;
     created_at: string;
     updated_at: string;
@@ -188,6 +191,39 @@ export interface CreateReportDTO {
     report_type: 'incident' | 'feedback' | 'general';
     related_child_id?: string;
     related_game_id?: string;
+}
+
+// ─── Drills (coaching resources) ────────────────────────────
+export type DrillCategory = "skating" | "stick_control" | "shooting" | "passing" | "conditioning" | "teamwork";
+export type DrillSkillLevel = "beginner" | "intermediate" | "advanced";
+
+export interface Drill {
+    id: string;
+    name: string;
+    description: string;
+    instructions: string;
+    category: DrillCategory;
+    skill_level: DrillSkillLevel;
+    difficulty: number; // 1-5
+    duration_minutes: number | null;
+    equipment: string | null;
+    max_players: number | null;
+    notes: string | null;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface CreateDrillDTO {
+    name: string;
+    description: string;
+    instructions: string;
+    category: DrillCategory;
+    skill_level: DrillSkillLevel;
+    difficulty: number;
+    duration_minutes?: number;
+    equipment?: string;
+    max_players?: number;
+    notes?: string;
 }
 
 // ─── API response helpers ───────────────────────────────────
