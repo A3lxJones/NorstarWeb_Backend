@@ -1,5 +1,5 @@
 // ─── User roles ─────────────────────────────────────────────
-export type UserRole = "parent" | "coach" | "admin";
+export type UserRole = 'parent' | 'coach' | 'admin';
 
 export interface UserProfile {
     id: string;
@@ -18,14 +18,14 @@ export interface Child {
     first_name: string;
     last_name: string;
     date_of_birth: string;
-    gender: "male" | "female" | "other";
+    gender: 'male' | 'female' | 'other';
     medical_conditions: string | null;
     allergies: string | null;
     emergency_contact_name: string;
     emergency_contact_phone: string;
     emergency_contact_relationship: string;
     photo_consent: boolean;
-    skill_level: "beginner" | "intermediate" | "advanced" | null;
+    skill_level: 'beginner' | 'intermediate' | 'advanced' | null;
     position: string | null;
     created_at: string;
     updated_at: string;
@@ -35,14 +35,14 @@ export interface CreateChildDTO {
     first_name: string;
     last_name: string;
     date_of_birth: string;
-    gender: "male" | "female" | "other";
+    gender: 'male' | 'female' | 'other';
     medical_conditions?: string;
     allergies?: string;
     emergency_contact_name: string;
     emergency_contact_phone: string;
     emergency_contact_relationship: string;
     photo_consent: boolean;
-    skill_level?: "beginner" | "intermediate" | "advanced";
+    skill_level?: 'beginner' | 'intermediate' | 'advanced';
     position?: string;
 }
 
@@ -61,7 +61,7 @@ export interface TeamRegistration {
     team_id: string;
     child_id: string;
     registered_by: string;
-    status: "pending" | "approved" | "rejected";
+    status: 'pending' | 'approved' | 'rejected';
     created_at: string;
 }
 
@@ -74,8 +74,8 @@ export interface Game {
     location: string;
     game_date: string;
     game_time: string;
-    game_type: "league" | "friendly" | "tournament" | "training";
-    status: "scheduled" | "in_progress" | "completed" | "cancelled";
+    game_type: 'league' | 'friendly' | 'tournament' | 'training';
+    status: 'scheduled' | 'in_progress' | 'completed' | 'cancelled';
     home_score: number | null;
     away_score: number | null;
     notes: string | null;
@@ -90,13 +90,13 @@ export interface CreateGameDTO {
     location: string;
     game_date: string;
     game_time: string;
-    game_type: "league" | "friendly" | "tournament" | "training";
+    game_type: 'league' | 'friendly' | 'tournament' | 'training';
     notes?: string;
 }
 
 // ─── Availability ───────────────────────────────────────────
-export type AvailabilityType = "match" | "training";
-export type AvailabilityStatus = "available" | "unavailable" | "tentative";
+export type AvailabilityType = 'match' | 'training';
+export type AvailabilityStatus = 'available' | 'unavailable' | 'tentative';
 
 export interface Availability {
     id: string;
@@ -121,7 +121,7 @@ export interface SubmitAvailabilityDTO {
 }
 
 // ─── Availability Requests ──────────────────────────────────
-export type AvailabilityRequestStatus = "open" | "closed";
+export type AvailabilityRequestStatus = 'open' | 'closed';
 
 export interface AvailabilityRequest {
     id: string;
@@ -174,7 +174,7 @@ export interface Report {
     id: string;
     title: string;
     content: string;
-    report_type: "incident" | "feedback" | "general";
+    report_type: 'incident' | 'feedback' | 'general';
     created_by: string;
     related_child_id: string | null;
     related_game_id: string | null;
@@ -185,7 +185,7 @@ export interface Report {
 export interface CreateReportDTO {
     title: string;
     content: string;
-    report_type: "incident" | "feedback" | "general";
+    report_type: 'incident' | 'feedback' | 'general';
     related_child_id?: string;
     related_game_id?: string;
 }
