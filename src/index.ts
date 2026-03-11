@@ -14,6 +14,7 @@ import availabilityRoutes from "./routes/availability";
 import availabilityRequestRoutes from "./routes/availability-requests";
 import reportsRoutes from "./routes/reports";
 import drillsRoutes from "./routes/drills";
+import calendarRoutes from "./routes/calendar";
 
 dotenv.config();
 
@@ -65,6 +66,7 @@ app.use("/api/availability", availabilityRoutes);
 app.use("/api/availability-requests", availabilityRequestRoutes);
 app.use("/api/reports", reportsRoutes);
 app.use("/api/drills", drillsRoutes);
+app.use("/api/calendar", calendarRoutes);
 
 // ─── 404 handler ────────────────────────────────────────────
 app.use((_req, res) => {
