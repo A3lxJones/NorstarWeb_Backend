@@ -129,6 +129,96 @@ router.post("/logout", async (_req: Request, res: Response): Promise<void> => {
 });
 
 /**
+ * POST /api/auth/forgot-password
+ * Send a password-recovery email.
+ * Body: { email }
+ */
+router.post("/forgot-password", async (req: Request, res: Response): Promise<void> => {
+    const { email, redirectTo: bodyRedirectTo } = req.body;
+
+    if (!isValidEmail(email)) {
+        res.status(400).json({
+            success: false,
+            error: "A valid email is required",
+        } as ApiResponse);
+        return;
+    }
+
+    // Use env var first, fall back to request body if it matches allowed origin
+    let redirectTo = process.env.PASSWORD_RESET_REDIRECT_URL;
+    if (!redirectTo && bodyRedirectTo) {
+        const allowedOrigin = process.env.CORS_ORIGIN || "";
+        if (typeof bodyRedirectTo === "string" && bodyRedirectTo.startsWith(allowedOrigin)) {
+            redirectTo = bodyRedirectTo;
+        }
+    }
+
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        ...(redirectTo ? { redirectTo } : {}),
+    });
+
+    if (error) {
+        res.status(500).json({ success: false, error: error.message } as ApiResponse);
+        return;
+    }
+
+    // Always return success to prevent email enumeration
+    res.json({
+        success: true,
+        message: "If that email exists, a password reset link has been sent.",
+    } as ApiResponse);
+});
+
+/**
+ * POST /api/auth/reset-password
+ * Set a new password using the access token from the recovery link.
+ * Headers: Authorization: Bearer <access_token from recovery link>
+ * Body: { password }
+ */
+router.post("/reset-password", async (req: Request, res: Response): Promise<void> => {
+    const { password } = req.body;
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+        res.status(401).json({
+            success: false,
+            error: "Access token is required",
+        } as ApiResponse);
+        return;
+    }
+
+    if (!isNonEmptyString(password) || password.length < 8) {
+        res.status(400).json({
+            success: false,
+            error: "Password must be at least 8 characters",
+        } as ApiResponse);
+        return;
+    }
+
+    const token = authHeader.split(" ")[1];
+
+    // Create a client scoped to this user's recovery session
+    const { createClient } = await import("@supabase/supabase-js");
+    const userClient = createClient(
+        process.env.SUPABASE_URL!,
+        process.env.SUPABASE_ANON_KEY!,
+        { global: { headers: { Authorization: `Bearer ${token}` } } }
+    );
+
+    const { error } = await userClient.auth.updateUser({ password });
+
+    if (error) {
+        res.status(400).json({ success: false, error: error.message } as ApiResponse);
+        return;
+    }
+
+    res.json({
+        success: true,
+        message: "Password has been reset successfully",
+    } as ApiResponse);
+});
+
+/**
  * POST /api/auth/refresh
  * Refresh an expired access token.
  * Body: { refresh_token }
