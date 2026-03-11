@@ -170,6 +170,35 @@ router.post("/forgot-password", async (req: Request, res: Response): Promise<voi
 });
 
 /**
+ * POST /api/auth/exchange-recovery-code
+ * Exchange a PKCE recovery code for an access token.
+ * Body: { code }
+ */
+router.post("/exchange-recovery-code", async (req: Request, res: Response): Promise<void> => {
+    const { code } = req.body;
+
+    if (!isNonEmptyString(code)) {
+        res.status(400).json({ success: false, error: "code is required" } as ApiResponse);
+        return;
+    }
+
+    const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+
+    if (error || !data.session) {
+        res.status(400).json({
+            success: false,
+            error: error?.message || "Invalid or expired recovery code",
+        } as ApiResponse);
+        return;
+    }
+
+    res.json({
+        success: true,
+        data: { accessToken: data.session.access_token },
+    } as ApiResponse);
+});
+
+/**
  * POST /api/auth/reset-password
  * Set a new password using the access token from the recovery link.
  * Headers: Authorization: Bearer <access_token from recovery link>
