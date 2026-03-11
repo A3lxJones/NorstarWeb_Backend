@@ -191,6 +191,85 @@ router.put("/:id", async (req: Request, res: Response): Promise<void> => {
 });
 
 /**
+ * PATCH /api/children/:id/team-details
+ * Coaches can update skill_level and position for children in their team.
+ * Admins can update any child.
+ * Body: { skill_level?: "beginner" | "intermediate" | "advanced", position?: string }
+ */
+router.patch(
+    "/:id/team-details",
+    authorize("coach", "admin"),
+    async (req: Request, res: Response): Promise<void> => {
+        if (!isValidUUID(req.params.id)) {
+            res.status(400).json({ success: false, error: "Invalid child ID" } as ApiResponse);
+            return;
+        }
+
+        const { skill_level, position } = req.body;
+
+        // Validate that at least one field is provided
+        if (skill_level === undefined && position === undefined) {
+            res.status(400).json({
+                success: false,
+                error: "At least one of skill_level or position must be provided",
+            } as ApiResponse);
+            return;
+        }
+
+        // Validate skill_level if provided
+        const validSkillLevels = ["beginner", "intermediate", "advanced"];
+        if (skill_level !== undefined && !validSkillLevels.includes(skill_level)) {
+            res.status(400).json({
+                success: false,
+                error: `skill_level must be one of: ${validSkillLevels.join(", ")}`,
+            } as ApiResponse);
+            return;
+        }
+
+        // Coaches must verify the child is in one of their teams
+        if (req.userRole === "coach") {
+            const { data: registration } = await supabaseAdmin
+                .from("team_registrations")
+                .select("id, team:teams!inner(coach_id)")
+                .eq("child_id", req.params.id)
+                .eq("status", "approved")
+                .eq("team.coach_id", req.userId!)
+                .limit(1)
+                .maybeSingle();
+
+            if (!registration) {
+                res.status(403).json({
+                    success: false,
+                    error: "You can only update children in your own team",
+                } as ApiResponse);
+                return;
+            }
+        }
+
+        // Build the update payload (only allowed fields)
+        const updatePayload: Record<string, unknown> = {
+            updated_at: new Date().toISOString(),
+        };
+        if (skill_level !== undefined) updatePayload.skill_level = skill_level;
+        if (position !== undefined) updatePayload.position = position;
+
+        const { data, error } = await supabaseAdmin
+            .from("children")
+            .update(updatePayload)
+            .eq("id", req.params.id)
+            .select()
+            .single();
+
+        if (error) {
+            res.status(500).json({ success: false, error: error.message } as ApiResponse);
+            return;
+        }
+
+        res.json({ success: true, data } as ApiResponse);
+    }
+);
+
+/**
  * DELETE /api/children/:id
  * Remove a child record. Parents delete their own; admins can delete any.
  */
