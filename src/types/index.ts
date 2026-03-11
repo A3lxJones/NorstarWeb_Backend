@@ -239,6 +239,38 @@ export interface DrillsListResponse {
     age_groups: string[];
 }
 
+// ─── Calendar Events ────────────────────────────────────────
+export type CalendarEventType = "match" | "training" | "announcement" | "meeting" | "social" | "other";
+export type CalendarEventSource = "auto" | "manual";
+
+export interface CalendarEvent {
+    id: string;
+    team_id: string | null;
+    availability_request_id: string | null;
+    title: string;
+    description: string | null;
+    event_date: string;
+    event_time: string | null;
+    end_time: string | null;
+    location: string | null;
+    event_type: CalendarEventType;
+    source: CalendarEventSource;
+    created_by: string;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface CreateCalendarEventDTO {
+    team_id?: string;
+    title: string;
+    description?: string;
+    event_date: string;
+    event_time?: string;
+    end_time?: string;
+    location?: string;
+    event_type: CalendarEventType;
+}
+
 // ─── API response helpers ───────────────────────────────────
 export interface ApiResponse<T = unknown> {
     success: boolean;
