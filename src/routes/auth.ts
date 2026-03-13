@@ -226,15 +226,22 @@ router.post("/reset-password", async (req: Request, res: Response): Promise<void
 
     const token = authHeader.split(" ")[1];
 
-    // Create a client scoped to this user's recovery session
-    const { createClient } = await import("@supabase/supabase-js");
-    const userClient = createClient(
-        process.env.SUPABASE_URL!,
-        process.env.SUPABASE_ANON_KEY!,
-        { global: { headers: { Authorization: `Bearer ${token}` } } }
-    );
+    // Verify the recovery token and get the user
+    const { data: userData, error: userError } = await supabaseAdmin.auth.getUser(token);
 
-    const { error } = await userClient.auth.updateUser({ password });
+    if (userError || !userData.user) {
+        res.status(401).json({
+            success: false,
+            error: "Invalid or expired reset token",
+        } as ApiResponse);
+        return;
+    }
+
+    // Use admin API to update the password (avoids AuthSessionMissingError)
+    const { error } = await supabaseAdmin.auth.admin.updateUserById(
+        userData.user.id,
+        { password }
+    );
 
     if (error) {
         res.status(400).json({ success: false, error: error.message } as ApiResponse);
