@@ -15,7 +15,17 @@ if (!supabaseUrl || !supabaseAnonKey || !supabaseServiceKey) {
 
 // Public client — respects Row Level Security (RLS)
 // Use this for operations on behalf of authenticated users
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// flowType must be 'implicit' so that resetPasswordForEmail produces a
+// #access_token hash-fragment redirect instead of a PKCE ?code= redirect
+// (the PKCE code_verifier can't survive between the server request and the
+// user clicking the email link).
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+    auth: {
+        flowType: 'implicit',
+        autoRefreshToken: false,
+        persistSession: false,
+    },
+});
 
 // Admin client — bypasses RLS
 // Use this ONLY for admin operations (reports, user management)
