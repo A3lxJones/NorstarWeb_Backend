@@ -6,6 +6,44 @@ import { ApiResponse } from "../types";
 
 const router = Router();
 
+/**
+ * GET /api/teams/public/list
+ * List all teams publicly (no authentication required).
+ * Used for child registration/team selection during signup.
+ */
+router.get("/public/list", async (_req: Request, res: Response): Promise<void> => {
+    try {
+        const { data, error } = await supabaseAdmin
+            .from("teams")
+            .select("*")
+            .order("name");
+
+        if (error) {
+            console.error("Public teams query error:", JSON.stringify(error, null, 2));
+            res.status(500).json({ 
+                success: false, 
+                error: `Failed to load teams: ${error.message}` 
+            } as ApiResponse);
+            return;
+        }
+
+        if (!data) {
+            res.json({ success: true, data: [] } as ApiResponse);
+            return;
+        }
+
+        console.log(`Successfully loaded ${data.length} teams for public endpoint`);
+        res.json({ success: true, data } as ApiResponse);
+    } catch (err) {
+        console.error("Unexpected error in /public/list:", err);
+        res.status(500).json({ 
+            success: false, 
+            error: "An unexpected error occurred while loading teams" 
+        } as ApiResponse);
+    }
+});
+
+// All other team routes require authentication
 router.use(authenticate);
 
 /**
@@ -123,6 +161,9 @@ router.get("/:id/registrations", async (req: Request, res: Response): Promise<vo
 /**
  * POST /api/teams
  * Create a new team (admin/coach only).
+ * Validation:
+ * - Team name is required
+ * - Age group cannot contain negative numbers
  */
 router.post(
     "/",
@@ -133,6 +174,16 @@ router.post(
             res.status(400).json({
                 success: false,
                 error: `Missing required fields: ${missing.join(", ")}`,
+            } as ApiResponse);
+            return;
+        }
+
+        // Validate age_group doesn't contain negative numbers
+        const ageGroupStr = String(req.body.age_group).trim();
+        if (ageGroupStr.startsWith("-") || parseInt(ageGroupStr) < 0) {
+            res.status(400).json({
+                success: false,
+                error: "Age group cannot be a negative number",
             } as ApiResponse);
             return;
         }
@@ -260,6 +311,8 @@ router.patch(
 /**
  * PUT /api/teams/:id
  * Update team details (admin/coach only).
+ * Validation:
+ * - Age group cannot be negative if provided
  */
 router.put(
     "/:id",
@@ -268,6 +321,18 @@ router.put(
         if (!isValidUUID(req.params.id)) {
             res.status(400).json({ success: false, error: "Invalid team ID" } as ApiResponse);
             return;
+        }
+
+        // Validate age_group if provided
+        if (req.body.age_group !== undefined) {
+            const ageGroupStr = String(req.body.age_group).trim();
+            if (ageGroupStr.startsWith("-") || parseInt(ageGroupStr) < 0) {
+                res.status(400).json({
+                    success: false,
+                    error: "Age group cannot be a negative number",
+                } as ApiResponse);
+                return;
+            }
         }
 
         const { id: _id, created_at: _ca, ...updateData } = req.body;
