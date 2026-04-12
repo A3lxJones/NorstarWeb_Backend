@@ -34,7 +34,7 @@ app.use(
 // Rate limiting — protect against brute force
 const limiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: process.env.NODE_ENV === "production" ? 500 : 5000, // Higher limit in development
+    max: process.env.NODE_ENV === "production" ? 5010 : 1000, // Higher limit in development
     standardHeaders: true,
     legacyHeaders: false,
     message: { success: false, error: "Too many requests, please try again later" },
