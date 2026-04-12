@@ -164,6 +164,7 @@ router.get("/users/:id", async (req: Request, res: Response): Promise<void> => {
  * PUT /api/admin/users/:id
  * Update a user's profile (name, phone, role).
  * Admin only.
+ * NOTE: If role is changed, it syncs to both profiles table AND auth.users metadata.
  */
 router.put("/users/:id", async (req: Request, res: Response): Promise<void> => {
     const { id } = req.params;
@@ -183,6 +184,7 @@ router.put("/users/:id", async (req: Request, res: Response): Promise<void> => {
     if (phone) updateData.phone = phone;
     if (role) updateData.role = role;
 
+    // Update profiles table
     const { data, error } = await supabaseAdmin
         .from("profiles")
         .update(updateData)
@@ -193,6 +195,21 @@ router.put("/users/:id", async (req: Request, res: Response): Promise<void> => {
     if (error || !data) {
         res.status(500).json({ success: false, error: error?.message || "Update failed" } as ApiResponse);
         return;
+    }
+
+    // If role was changed, also update the auth.users metadata so JWT tokens reflect the change
+    if (role) {
+        const userId = typeof id === "string" ? id : id[0];
+        const { error: authError } = await supabaseAdmin.auth.admin.updateUserById(userId, {
+            user_metadata: {
+                role,
+            },
+        });
+
+        if (authError) {
+            console.warn(`Failed to sync role to auth.users for user ${userId}:`, authError);
+            // Don't fail the request, but log the warning
+        }
     }
 
     res.json({ success: true, data } as ApiResponse);
