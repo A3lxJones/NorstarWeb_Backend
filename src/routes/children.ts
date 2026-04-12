@@ -1,12 +1,58 @@
 import { Router, Request, Response } from "express";
 import { supabaseAdmin } from "../config/supabase";
 import { authenticate, authorize } from "../middleware/auth";
-import { getMissingFields, isValidUUID } from "../utils/validation";
+import { 
+    getMissingFields, 
+    isValidUUID, 
+    isNotNumeric, 
+    isValidPhoneNumber, 
+    validateAge 
+} from "../utils/validation";
 import { ApiResponse, CreateChildDTO } from "../types";
 
 const router = Router();
 
-// All children routes require authentication
+/**
+ * GET /api/children/setup/teams
+ * Get available teams for child creation selection.
+ * PUBLIC ENDPOINT - No authentication required.
+ * This endpoint allows parents to see teams they can request to join
+ * when creating a new child.
+ */
+router.get("/setup/teams", async (_req: Request, res: Response): Promise<void> => {
+    try {
+        const { data, error } = await supabaseAdmin
+            .from("teams")
+            .select("*")
+            .order("name");
+
+        if (error) {
+            console.error("Teams query error:", JSON.stringify(error, null, 2));
+            res.status(500).json({ 
+                success: false, 
+                error: `Failed to load teams: ${error.message}` 
+            } as ApiResponse);
+            return;
+        }
+
+        if (!data) {
+            console.warn("Teams query returned null data");
+            res.json({ success: true, data: [] } as ApiResponse);
+            return;
+        }
+
+        console.log(`Successfully loaded ${data.length} teams`);
+        res.json({ success: true, data } as ApiResponse);
+    } catch (err) {
+        console.error("Unexpected error in /setup/teams:", err);
+        res.status(500).json({ 
+            success: false, 
+            error: "An unexpected error occurred while loading teams" 
+        } as ApiResponse);
+    }
+});
+
+// All other children routes require authentication
 router.use(authenticate);
 
 const REQUIRED_CHILD_FIELDS = [
@@ -113,6 +159,10 @@ router.get("/:id/registrations", async (req: Request, res: Response): Promise<vo
 /**
  * POST /api/children
  * Register a new child (parents only — linked to their account).
+ * Validation:
+ * - Child must be between 4 and 17 years old
+ * - first_name and last_name must not be purely numeric
+ * - emergency_contact_phone must be valid phone format
  */
 router.post(
     "/",
@@ -123,6 +173,52 @@ router.post(
             res.status(400).json({
                 success: false,
                 error: `Missing required fields: ${missing.join(", ")}`,
+            } as ApiResponse);
+            return;
+        }
+
+        // Validate age (must be 4-17)
+        const ageError = validateAge(req.body.date_of_birth, 4, 17);
+        if (ageError) {
+            res.status(400).json({
+                success: false,
+                error: ageError,
+            } as ApiResponse);
+            return;
+        }
+
+        // Validate first_name is not purely numeric
+        if (!isNotNumeric(req.body.first_name)) {
+            res.status(400).json({
+                success: false,
+                error: "First name cannot be purely numeric",
+            } as ApiResponse);
+            return;
+        }
+
+        // Validate last_name is not purely numeric
+        if (!isNotNumeric(req.body.last_name)) {
+            res.status(400).json({
+                success: false,
+                error: "Last name cannot be purely numeric",
+            } as ApiResponse);
+            return;
+        }
+
+        // Validate emergency_contact_name is not purely numeric
+        if (!isNotNumeric(req.body.emergency_contact_name)) {
+            res.status(400).json({
+                success: false,
+                error: "Emergency contact name cannot be purely numeric",
+            } as ApiResponse);
+            return;
+        }
+
+        // Validate emergency_contact_phone format
+        if (!isValidPhoneNumber(req.body.emergency_contact_phone)) {
+            res.status(400).json({
+                success: false,
+                error: "Emergency contact phone must be a valid phone number",
             } as ApiResponse);
             return;
         }

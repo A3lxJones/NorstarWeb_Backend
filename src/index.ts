@@ -15,6 +15,7 @@ import availabilityRequestRoutes from "./routes/availability-requests";
 import reportsRoutes from "./routes/reports";
 import drillsRoutes from "./routes/drills";
 import calendarRoutes from "./routes/calendar";
+import adminRoutes from "./routes/admin";
 
 dotenv.config();
 
@@ -33,7 +34,7 @@ app.use(
 // Rate limiting — protect against brute force
 const limiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 2000, // limit each IP to 2000 requests per window
+    max: process.env.NODE_ENV === "production" ? 500 : 5000, // Higher limit in development
     standardHeaders: true,
     legacyHeaders: false,
     message: { success: false, error: "Too many requests, please try again later" },
@@ -43,7 +44,7 @@ app.use(limiter);
 // Stricter rate limit for auth endpoints
 const authLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
-    max: 100, // only 100 login/signup attempts per 15 min
+    max: process.env.NODE_ENV === "production" ? 30 : 300, // Higher limit in development
     message: { success: false, error: "Too many auth attempts, please try again later" },
 });
 
@@ -67,6 +68,7 @@ app.use("/api/availability-requests", availabilityRequestRoutes);
 app.use("/api/reports", reportsRoutes);
 app.use("/api/drills", drillsRoutes);
 app.use("/api/calendar", calendarRoutes);
+app.use("/api/admin", adminRoutes);
 
 // ─── 404 handler ────────────────────────────────────────────
 app.use((_req, res) => {

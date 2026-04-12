@@ -41,21 +41,28 @@ export async function authenticate(
         return;
     }
 
-    // Fetch the user's role from the profiles table
-    const { data: profile, error: profileError } = await supabaseAdmin
+    // Always fetch the user's role from the profiles table (source of truth)
+    // This ensures role changes are reflected immediately on the next request
+    const { data: profile } = await supabaseAdmin
         .from("profiles")
         .select("role")
         .eq("id", user.id)
         .single();
 
-    if (profileError || !profile) {
-        res.status(403).json({ success: false, error: "User profile not found" });
-        return;
+    // If profile doesn't exist yet (e.g., race condition on signup), fall back to JWT metadata
+    let userRole: UserRole = "parent"; // default fallback
+    
+    if (profile?.role) {
+        // Use the database role (source of truth)
+        userRole = profile.role as UserRole;
+    } else if (user.user_metadata?.role) {
+        // Fallback to JWT metadata only if profile lookup fails
+        userRole = user.user_metadata.role as UserRole;
     }
 
     req.userId = user.id;
     req.userEmail = user.email;
-    req.userRole = profile.role as UserRole;
+    req.userRole = userRole;
 
     next();
 }

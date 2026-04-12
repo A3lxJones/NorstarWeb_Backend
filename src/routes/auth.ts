@@ -94,10 +94,15 @@ router.post("/login", async (req: Request, res: Response): Promise<void> => {
         password,
     });
 
+    console.log(data);
+    console.log(data.user?.user_metadata);
+    console.log(data.session);
+
     if (error) {
         res.status(401).json({ success: false, error: "Invalid email or password" } as ApiResponse);
         return;
     }
+    
 
     res.json({
         success: true,
@@ -285,6 +290,52 @@ router.post("/refresh", async (req: Request, res: Response): Promise<void> => {
             accessToken: data.session?.access_token,
             refreshToken: data.session?.refresh_token,
         },
+    } as ApiResponse);
+});
+
+/**
+ * GET /api/auth/me
+ * Fetch the current authenticated user's latest profile data from Supabase.
+ * Used to refresh/sync user roles and other profile information on the frontend.
+ * Protected: Requires valid JWT token in Authorization header.
+ * Returns: id, email, full_name, role
+ */
+router.get("/me", async (req: Request, res: Response): Promise<void> => {
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+        res.status(401).json({ success: false, error: "Missing or invalid authorization header" });
+        return;
+    }
+
+    const token = authHeader.split(" ")[1];
+
+    // Verify the token and extract user ID
+    const {
+        data: { user },
+        error: tokenError,
+    } = await supabase.auth.getUser(token);
+
+    if (tokenError || !user) {
+        res.status(401).json({ success: false, error: "Invalid or expired token" });
+        return;
+    }
+
+    // Fetch the latest user profile from Supabase (bypasses any client-side caching)
+    const { data: profile, error: profileError } = await supabaseAdmin
+        .from("profiles")
+        .select("id, email, full_name, role")
+        .eq("id", user.id)
+        .single();
+
+    if (profileError || !profile) {
+        res.status(404).json({ success: false, error: "User profile not found" });
+        return;
+    }
+
+    res.json({
+        success: true,
+        data: profile,
     } as ApiResponse);
 });
 
